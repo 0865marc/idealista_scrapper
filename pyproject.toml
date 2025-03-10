@@ -1,0 +1,48 @@
+[project]
+name = "idealista-scrapper"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.11",
+    "requests>=2.32.3",
+    "uvicorn>=0.34.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.9.10",
+]
+
+[tool.ruff]
+# Configuración básica
+line-length = 88  # Longitud máxima de línea, compatible con Black
+target-version = "py310"  # Soporte para Python 3.10 como base razonable
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+
+# Configuración de linting
+[tool.ruff.lint]
+select = [
+    "E",  # Errores de pycodestyle (PEP 8)
+    "W",  # Advertencias de pycodestyle
+    "F",  # Pyflakes (errores comunes)
+    "I",  # isort (ordenamiento de imports)
+    "B",  # flake8-bugbear (errores sutiles)
+]
+ignore = [
+    "E501",  # Permitir líneas más largas como excepción inicial
+]
+
+# Formato básico
+[tool.ruff.format]
+quote-style = "double"  # Usar comillas dobles
+indent-style = "space"  # Usar espacios para indentación (4 espacios por defecto)
