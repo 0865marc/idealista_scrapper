@@ -1,7 +1,11 @@
 import logging
 import logging.handlers
 
+from dotenv import load_dotenv
+
 from idealista.idealista_scraper import IdealistaScraper
+
+load_dotenv()
 
 logger = logging.getLogger()
 handler = logging.handlers.TimedRotatingFileHandler(
