@@ -5,7 +5,7 @@ from celery import Celery  # type: ignore
 
 class CeleryManager:
     def __init__(self) -> None:
-        self.celery_app = Celery('idealista')
+        self.celery_app = Celery('app')
 
     def setup_celery(self) -> None:
         self.celery_app.conf.broker_url = f"redis://{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}/{os.getenv('REDIS_DB')}"
@@ -15,3 +15,6 @@ class CeleryManager:
             timezone='Europe/Madrid',
             enable_utc=True,
         )
+
+    def start_celery(self) -> None:
+        self.celery_app.worker_main()

@@ -19,21 +19,74 @@ This project consists of two main components:
 - Ubuntu 24.04.2 LTS
 - uv
 - ruff
+- supervisor
 - redis-server
 
-### Installing Redis Server on Ubuntu 24.04.2 LTS WSL
 
 #### Installing Redis Server
 ```bash
 sudo apt-get install redis-server
 ```
 
-#### Starting Redis Server
+#### Installing Supervisor
 ```bash
-sudo service redis-server start
+sudo apt-get install supervisor
 ```
 
-#### Checking Redis Server Status
+#### Run it once to create /var/run/supervisor.sock
 ```bash
-sudo service redis-server status
+sudo supervisord -c /etc/supervisor/supervisord.conf
+```
+
+#### Create logs directories
+```bash
+sudo mkdir -p /var/log/redis
+sudo mkdir -p /var/log/celery
+```
+
+#### Set correct permissions
+```bash
+sudo chown -R redis:redis /var/log/redis
+sudo chown $USER:$USER /var/log/celery   #use your user instead of $USER
+```
+
+#### Configuring Supervisor
+```bash
+sudo nano /etc/supervisor/conf.d/idealista_scraper.conf
+```
+
+```
+[program:redis]
+priority=10
+command=/usr/local/bin/redis-server /etc/redis/redis.conf
+user=redis
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/redis/stdout.log
+stderr_logfile=/var/log/redis/stderr.log
+
+[program:celery-worker]
+priority=20
+command=/ruta/entorno/bin/celery -A test_celery.celery_app worker --loglevel=INFO
+directory=/ruta/proyecto
+user=usuario
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/celery/worker.log
+stderr_logfile=/var/log/celery/worker-error.log
+
+[group:celery-sistema]
+programs=redis,celery-worker
+```
+
+#### Restart Supervisor
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start idealista_scraper
+```
+
+#### Check status
+```bash
+sudo supervisorctl status
 ```
