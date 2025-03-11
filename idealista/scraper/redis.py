@@ -24,7 +24,7 @@ class RedisManager:
         self.redis_host = os.getenv("REDIS_HOST")
         self.redis_port = os.getenv("REDIS_PORT")
 
-    def setup_redis(self try_to_start: bool = False) -> None:
+    def setup_redis(self, try_to_start: bool = False) -> None:
         logger.info("Checking Redis ...")
 
         if self.check_redis_connection():
