@@ -5,7 +5,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "celery>=5.4.0",
     "fastapi>=0.115.11",
+    "redis>=5.2.1",
     "requests>=2.32.3",
     "uvicorn>=0.34.0",
 ]
@@ -39,7 +41,7 @@ select = [
     "B",  # flake8-bugbear (errores sutiles)
 ]
 ignore = [
-    "E501",  # Permitir líneas más largas como excepción inicial
+    #"E501",  # Permitir líneas más largas como excepción inicial
 ]
 
 # Formato básico

@@ -14,3 +14,8 @@ This project consists of two main components:
 - RESTful API endpoints to query real estate data
 - Structured storage of property information
 - Configurable scraping parameters
+
+## Requirements
+- uv
+- ruff
+- redis-server
