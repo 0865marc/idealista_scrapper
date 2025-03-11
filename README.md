@@ -16,6 +16,24 @@ This project consists of two main components:
 - Configurable scraping parameters
 
 ## Requirements
+- Ubuntu 24.04.2 LTS
 - uv
 - ruff
 - redis-server
+
+### Installing Redis Server on Ubuntu 24.04.2 LTS WSL
+
+#### Installing Redis Server
+```bash
+sudo apt-get install redis-server
+```
+
+#### Starting Redis Server
+```bash
+sudo service redis-server start
+```
+
+#### Checking Redis Server Status
+```bash
+sudo service redis-server status
+```
