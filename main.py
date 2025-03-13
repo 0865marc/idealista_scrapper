@@ -9,7 +9,7 @@ load_dotenv()
 
 logger = logging.getLogger()
 handler = logging.handlers.TimedRotatingFileHandler(
-    "idealista_scraper.log", when="midnight", interval=1
+    "logs/idealista_scraper.log", when="midnight", interval=1
 )
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
@@ -18,6 +18,7 @@ logger.setLevel(logging.INFO)
 
 
 def main() -> None:
+    logger.error("TESTING")
     idealista_scrapper = IdealistaScraper(host="0.0.0.0", port=8000)
 
     logger.info("Idealista scraper started")
