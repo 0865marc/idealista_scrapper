@@ -4,6 +4,7 @@ import logging.handlers
 from dotenv import load_dotenv
 
 from idealista.idealista_scraper import IdealistaScraper
+import os
 
 load_dotenv()
 
@@ -18,7 +19,8 @@ logger.setLevel(logging.INFO)
 
 
 def main() -> None:
-    logger.error("TESTING")
+    logger.error(os.environ.items())
+    logger.error(os.getenv("REDIS_HOST"))
     idealista_scrapper = IdealistaScraper(host="0.0.0.0", port=8000)
 
     logger.info("Idealista scraper started")

@@ -4,16 +4,14 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 # Actualizar paquetes e instalar herramientas básicas
 RUN apt-get update && apt-get install -y curl build-essential
-
-
-
-
 # Instalar git
 RUN apt-get install -y git
-# Clonar el repositorio
-RUN git clone https://github.com/0865marc/idealista_scrapper.git
-# Establecer directorio de trabajo
+
+
+# Copiar archivos locales 
 WORKDIR /idealista_scrapper
+COPY . .
+
 
 # Instalar uv (usando curl para obtener la última versión) y añadir comandos de depuración
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh 
@@ -21,8 +19,6 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:${PATH}"
 # Instalar dependencias python
 RUN uv sync
-
-
 
 
 EXPOSE 8000
