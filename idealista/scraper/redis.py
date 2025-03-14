@@ -21,8 +21,8 @@ class RedisManager:
         self.setup_redis()
 
     def get_env_vars(self) -> None:
-        self.redis_host = os.getenv("REDIS_HOST")
-        self.redis_port = os.getenv("REDIS_PORT")
+        self.REDIS_HOST = os.getenv("REDIS_HOST")
+        self.REDIS_PORT = os.getenv("REDIS_PORT")
 
     def setup_redis(self, try_to_start: bool = False) -> None:
         logger.info("Checking Redis ...")
@@ -46,7 +46,7 @@ class RedisManager:
     def check_redis_connection(self) -> bool:
         if self.redis_client is not None:
             return True
-
+        logger.info("Checking Redis connection to %s:%s", self.REDIS_HOST, self.REDIS_PORT)
         redis_client = redis.Redis(
             host=self.REDIS_HOST,
             port=self.REDIS_PORT,
@@ -57,9 +57,11 @@ class RedisManager:
             redis_client.ping()
             self.redis_client = redis_client
             return True
-        except redis.exceptions.ConnectionError:
+        except redis.exceptions.ConnectionError as e:
+            logger.error("Redis connection failed: %s", e)
             return False
-        except Exception:
+        except Exception as e:
+            logger.error("Redis connection failed: %s", e)
             return False
 
     def initialize_redis(self) -> None:
