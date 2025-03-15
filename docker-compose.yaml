@@ -3,15 +3,20 @@ services:
     image: redis:latest
     ports:
       - "6379:6379"
-  
-  app:
+
+  api:
     build: .
     ports:
       - "8000:8000"
     depends_on:
       - redis
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
     volumes:
-      - ./logs:/idealista_scrapper/logs
+      - .:/idealista_scrapper
+
+  celery-worker:
+    build: .
+    depends_on:
+      - redis
+    volumes:
+      - .:/idealista_scrapper
+    command: celery -A main:celery_app worker

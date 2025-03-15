@@ -1,30 +1,21 @@
+from src.api.main import app
+#from src.core.logging import setup_logging
+from src.core.celery import celery_app
 import logging
-import logging.handlers
 
-from dotenv import load_dotenv
-
-from idealista.idealista_scraper import IdealistaScraper
-import os
-
-#load_dotenv()
-
-logger = logging.getLogger()
 handler = logging.handlers.TimedRotatingFileHandler(
-    "logs/idealista_scraper.log", when="midnight", interval=1
+        "logs/idealista_scraper.log", when="midnight", interval=1
+    )
+logging.basicConfig(
+    handlers=[handler],
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
-
 
 def main() -> None:
-    idealista_scrapper = IdealistaScraper(host="0.0.0.0", port=8000)
-
-    logger.info("Idealista scraper started")
-
-    idealista_scrapper.start()
-
+    print("this should only print once")
+    app.start(celery_app)
 
 if __name__ == "__main__":
     main()
