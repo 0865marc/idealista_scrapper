@@ -6,6 +6,8 @@ services:
 
   api:
     build: .
+    environment:
+      - LOG_LEVEL=DEBUG # [DEBUG, INFO, WARNING, ERROR, CRITICAL]
     ports:
       - "8000:8000"
     depends_on:
@@ -15,8 +17,10 @@ services:
 
   celery-worker:
     build: .
+    environment:
+      - LOG_LEVEL=INFO # [DEBUG, INFO, WARNING, ERROR, CRITICAL]
     depends_on:
       - redis
     volumes:
       - .:/idealista_scrapper
-    command: celery -A main:celery_app worker
+    command: celery -A src.core.celery worker

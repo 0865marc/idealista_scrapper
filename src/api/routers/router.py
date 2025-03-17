@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from src.api.routers import properties
 from src.api.routers import users
-from src.tasks.tasks import wait_10_seconds
+from src.tasks.tasks import get_properties_from_list_page
 
 logger = logging.getLogger(__name__)
 
@@ -16,5 +16,7 @@ router.include_router(properties.router, prefix="/properties", tags=["properties
 
 @router.get("/")
 def read_root():
-    wait_10_seconds.delay()
-    return {"message": "Hello"}
+    _properties = get_properties_from_list_page.delay(
+        "https://www.idealista.com/venta-viviendas/lleida-lleida/?ordenado-por=fecha-publicacion-desc"
+        )
+    return {"message": "okay"}

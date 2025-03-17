@@ -1,4 +1,5 @@
 import logging
+import os
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -9,22 +10,24 @@ from src.api.routers.router import router
 
 
 logger = logging.getLogger(__name__)
+handler = logging.handlers.TimedRotatingFileHandler(
+    "logs/api/api.log",
+    when="midnight", 
+    interval=1,
+)
+handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                      datefmt="%Y-%m-%d %H:%M:%S",)
+    )
+logger.addHandler(handler)
+logger.setLevel(os.getenv("LOG_LEVEL", "INFO"))
 
-class API:
-    def __init__(self):
-        self.app = FastAPI(
-            title="Idealista API",
-            description="API to consume scraped data from Idealista",
-        )
-        self.app.include_router(router)
 
-    def start(self, celery_app: Celery|None=None):
-        self.celery_app = celery_app
-        uvicorn.run(self.app, 
-                    host="0.0.0.0", 
-                    port=8000)
-
-app = API().app
+app = FastAPI(
+    title="Idealista API",
+    description="API to consume scraped data from Idealista",
+)
+app.include_router(router)
 
 # Middleware to log requests and responses
 @app.middleware("http")
