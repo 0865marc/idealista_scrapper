@@ -1,15 +1,13 @@
-import os
 import logging
 
-from celery import Celery  # type: ignore
-
+from celery import Celery
 
 logger = logging.getLogger("src.tasks.celery")
 
 celery_app = Celery('app')
-celery_app.conf.broker_url = f"redis://redis:6379/"
-celery_app.conf.result_backend = f"redis://redis:6379/"
 celery_app.conf.update(
+    broker_url="redis://redis:6379/",
+    result_backend="redis://redis:6379/",
     timezone='Europe/Madrid',
     enable_utc=True,
     worker_hijack_root_logger=False,
