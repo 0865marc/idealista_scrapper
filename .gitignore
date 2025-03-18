@@ -10,7 +10,8 @@ wheels/
 .venv
 
 # Logs
-idealista_scraper.log
+logs/api
+logs/tasks
 
 # Redis
 dump.rdb
