@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "beautifulsoup4>=4.13.3",
     "bs4>=0.0.2",
     "celery>=5.4.0",
     "dotenv>=0.9.9",
@@ -16,7 +17,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pytest>=8.3.5",
+    "pytest-mock>=3.14.0",
     "ruff>=0.9.10",
 ]
 
@@ -50,3 +53,6 @@ ignore = [
 [tool.ruff.format]
 quote-style = "double"  # Usar comillas dobles
 indent-style = "space"  # Usar espacios para indentación (4 espacios por defecto)
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
