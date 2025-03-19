@@ -1,0 +1,28 @@
+services:
+  redis:
+    image: redis:latest
+    restart: always
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    environment:
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    restart: always
+    command: uv run uvicorn src.api.main:app --host 0.0.0.0 --reload
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    environment:
+      - LOG_LEVEL=INFO
+    depends_on:
+      - redis
+    restart: always
+    command: uv run celery -A src.core.celery worker

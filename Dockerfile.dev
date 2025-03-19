@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1
+SHELL ["/bin/bash", "-c"]
+WORKDIR /idealista_scrapper
+
+# Instalar dependencias mínimas si las necesitas
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/idealista_scrapper/.venv/bin:$PATH"
+ENV VIRTUAL_ENV="/idealista_scrapper/.venv"
+
+EXPOSE 8000
+
