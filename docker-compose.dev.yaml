@@ -5,7 +5,8 @@ services:
       - "6379:6379"
 
   api:
-    build: .
+    build:
+      dockerfile: Dockerfile.dev
     environment:
       - LOG_LEVEL=DEBUG # [DEBUG, INFO, WARNING, ERROR, CRITICAL]
     ports:
@@ -14,9 +15,11 @@ services:
       - redis
     volumes:
       - .:/idealista_scrapper
+    command: uvicorn src.api.main:app --host 0.0.0.0 --reload
 
   celery-worker:
-    build: .
+    build:
+      dockerfile: Dockerfile.dev
     environment:
       - LOG_LEVEL=INFO # [DEBUG, INFO, WARNING, ERROR, CRITICAL]
     depends_on:
