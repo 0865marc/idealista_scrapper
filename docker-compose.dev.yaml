@@ -3,6 +3,17 @@ services:
     image: redis:latest
     ports:
       - "6379:6379"
+  
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   api:
     build:
@@ -12,20 +23,25 @@ services:
     ports:
       - "8000:8000"
     depends_on:
+      - postgres
       - redis
     volumes:
       - ./logs:/idealista_scrapper/logs
       - ./src:/idealista_scrapper/src
     command: uv run uvicorn src.api.main:app --host 0.0.0.0 --reload
 
-  celery-worker:
+  celery:
     build:
       dockerfile: Dockerfile.dev
     environment:
       - LOG_LEVEL=INFO # [DEBUG, INFO, WARNING, ERROR, CRITICAL]
     depends_on:
+      - postgres
       - redis
     volumes:
       - ./logs:/idealista_scrapper/logs
       - ./src:/idealista_scrapper/src
-    command: uv run celery -A src.core.celery worker
+    command: uv run watchmedo auto-restart --directory=./ --pattern=*.py --recursive -- uv run celery -A src.core.celery worker
+
+volumes:
+  postgres_data:

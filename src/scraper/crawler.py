@@ -37,18 +37,22 @@ class Crawler:
         try:
             response: requests.Response = requests.post(
                 "https://api.zyte.com/v1/extract",
-                auth=("", ""),  ## GET it from env
+                auth=("7cdea51c9eaa4846afdb1641070b23e4", ""),  ## GET it from env
                 json={"url": url, "httpResponseBody": True},
             )
-            if response.status_code != 200:
-                logger.error(
-                    f"Zyte response code: {response.status_code} | {response.json()}"
+            match response.status_code:
+                case 200:
+                    response_body = b64decode(response.json()["httpResponseBody"])
+                    soup = BeautifulSoup(response_body, "html.parser")
+                    return soup
+                case 401:
+                    logger.error("Zyte API key is empty/invalid")
+                    return None
+                case _:
+                    logger.error(
+                        f"Zyte response code: {response.status_code} | {response.json()}"
                     )
-                return None
-
-            response_body = b64decode(response.json()["httpResponseBody"])
-            soup = BeautifulSoup(response_body, "html.parser")
-            return soup
+                    return None
 
         finally:
             with self.redis_client.pipeline() as pipe:
