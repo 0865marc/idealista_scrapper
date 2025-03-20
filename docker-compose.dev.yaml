@@ -14,8 +14,9 @@ services:
     depends_on:
       - redis
     volumes:
-      - .:/idealista_scrapper
-    command: uvicorn src.api.main:app --host 0.0.0.0 --reload
+      - ./logs:/idealista_scrapper/logs
+      - ./src:/idealista_scrapper/src
+    command: uv run uvicorn src.api.main:app --host 0.0.0.0 --reload
 
   celery-worker:
     build:
@@ -25,5 +26,6 @@ services:
     depends_on:
       - redis
     volumes:
-      - .:/idealista_scrapper
-    command: celery -A src.core.celery worker
+      - ./logs:/idealista_scrapper/logs
+      - ./src:/idealista_scrapper/src
+    command: uv run celery -A src.core.celery worker

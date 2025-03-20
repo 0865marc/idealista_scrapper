@@ -10,12 +10,12 @@ import redis.client
 import requests
 from bs4 import BeautifulSoup, Tag
 
-logger = logging.getLogger("src.tasks.celery")
+logger = logging.getLogger("src.tasks.tasks")
 
 
 class Crawler:
     def __init__(self, domain: Literal["idealista", "fotocasa"]) -> None:
-        self.REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
+        self.REDIS_HOST: str = os.getenv("REDIS_HOST", "redis")
         self.REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
         self.MAX_WORKERS: int = int(os.getenv("MAX_WORKERS", 2))
         self.RETRY_DELAY: int = int(os.getenv("RETRY_DELAY", 1))  # seconds
@@ -26,7 +26,7 @@ class Crawler:
         self.redis_client = redis.Redis(host=self.REDIS_HOST, port=self.REDIS_PORT)
         self.worker_id = str(uuid.uuid4())
 
-    def request_through_zyte(self, url: str) -> BeautifulSoup:
+    def request_through_zyte(self, url: str) -> BeautifulSoup|None:
         logger.info(f"Worker {self.worker_id} requesting {url} through Zyte")
         has_slot = False
 
@@ -40,7 +40,12 @@ class Crawler:
                 auth=("", ""),  ## GET it from env
                 json={"url": url, "httpResponseBody": True},
             )
-            logger.info(f"Zyte response code: {response.status_code}")
+            if response.status_code != 200:
+                logger.error(
+                    f"Zyte response code: {response.status_code} | {response.json()}"
+                    )
+                return None
+
             response_body = b64decode(response.json()["httpResponseBody"])
             soup = BeautifulSoup(response_body, "html.parser")
             return soup
@@ -56,6 +61,8 @@ class Crawler:
             redis_value = self.redis_client.get(self.SEMAPHORE_KEY) or 0
             if isinstance(redis_value, bytes):
                 current_count = int(redis_value.decode("utf-8"))
+            elif isinstance(redis_value, int):
+                current_count = 0
             else:
                 logger.warning(f"Unexpected value for semaphore: {redis_value}")
                 current_count = self.MAX_WORKERS

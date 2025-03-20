@@ -20,9 +20,6 @@ WORKDIR /idealista_scrapper
 
 RUN uv sync
 RUN mkdir logs
-RUN mkdir logs/tasks
-RUN mkdir logs/api
-RUN mkdir logs/scraper
 
 
 EXPOSE 8000

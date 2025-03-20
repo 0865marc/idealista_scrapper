@@ -9,7 +9,7 @@ from src.api.routers.router import router
 
 logger = logging.getLogger(__name__)
 handler = logging.handlers.TimedRotatingFileHandler(
-    "logs/api/api.log",
+    "logs/api.log",
     when="midnight",
     interval=1,
 )
