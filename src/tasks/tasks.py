@@ -7,7 +7,7 @@ from src.scraper.crawler import IdealistaCrawler
 
 logger = logging.getLogger(__name__)
 handler = logging.handlers.TimedRotatingFileHandler(
-    "logs/tasks/tasks.log",
+    "logs/tasks.log",
     when="midnight",
     interval=1,
 )
@@ -25,4 +25,6 @@ logger.setLevel(os.getenv("LOG_LEVEL", "INFO"))
 def get_properties_from_list_page(url: str) -> list[int]:
     crawler = IdealistaCrawler()
     soup = crawler.request_through_zyte(url)
-    return crawler.get_properties_from_list_page(soup)
+    if soup is not None:
+        return crawler.get_properties_from_list_page(soup)
+    return []

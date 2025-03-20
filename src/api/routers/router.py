@@ -1,11 +1,7 @@
-import logging
-
 from fastapi import APIRouter
 
 from src.api.routers import properties, users
 from src.tasks.tasks import get_properties_from_list_page
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 router.include_router(users.router, prefix="/users", tags=["users"])

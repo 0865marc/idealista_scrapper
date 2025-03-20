@@ -10,8 +10,7 @@ wheels/
 .venv
 
 # Logs
-logs/api
-logs/tasks
+logs
 
 # Redis
 dump.rdb

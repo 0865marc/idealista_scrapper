@@ -6,11 +6,23 @@ WORKDIR /idealista_scrapper
 
 # Instalar dependencias mínimas si las necesitas
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/idealista_scrapper/.venv/bin:$PATH"
-ENV VIRTUAL_ENV="/idealista_scrapper/.venv"
+# Install uv and add to path
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Create logs dir
+RUN mkdir logs
+
+# Copy needed files to create .venv using uv
+COPY pyproject.toml .
+COPY .python-version .
+COPY uv.lock .
+
+# Create .venv
+RUN uv sync
 
 EXPOSE 8000
 
