@@ -10,11 +10,18 @@ import redis.client
 import requests
 from bs4 import BeautifulSoup, Tag
 
+from src.scraper.idealista_scraper import IdealistaScraper
+
 logger = logging.getLogger("src.tasks.tasks")
 
 
 class Crawler:
-    def __init__(self, domain: Literal["idealista", "fotocasa"]) -> None:
+    """
+    Handles the basics mecahnics of crawling a website.
+    Right now it's only used for Idealista, but could be extended to other websites.
+    """
+    def __init__(self, webpage: Literal["idealista", "fotocasa"]) -> None:
+        self.webpage = webpage
         self.REDIS_HOST: str = os.getenv("REDIS_HOST", "redis")
         self.REDIS_PORT: int = int(os.getenv("REDIS_PORT", 6379))
         self.MAX_WORKERS: int = int(os.getenv("MAX_WORKERS", 2))
@@ -101,46 +108,16 @@ class Crawler:
 class IdealistaCrawler(Crawler):
     def __init__(self) -> None:
         super().__init__("idealista")
+        self.scraper: IdealistaScraper = IdealistaScraper()
 
     def crawl_properties(self, soup: BeautifulSoup) -> dict[int, dict]:
         properties_id = self.get_properties_from_list_page(soup)
 
         properties_details: dict[int, dict] = {}
-        for property_id in properties_id:
-            properties_details[property_id] = self.get_property_details(property_id)
+        for property_id, property_soup in properties_id.items():
+            property_details = self.get_property_details(property_id, property_soup)
+            properties_details[property_id] = property_details
         return properties_details
 
-    def get_properties_from_list_page(self, soup: BeautifulSoup) -> list[int]:
-        div_main = cast(Tag | None, soup.find("div", id="main"))
-        if div_main is None:
-            logger.error("No div main found")
-            return []
-
-        section_main = cast(Tag | None, div_main.find("main"))
-        if section_main is None:
-            logger.error("No section main found")
-            return []
-
-        articles = section_main.find_all("article", attrs={"data-element-id": True})
-        articles = cast(list[Tag], articles)
-
-        articles_id: list[int] = []
-        for _article in articles:
-            _article_id = _article.get("data-element-id")
-            if _article_id is None:
-                continue
-
-            if isinstance(_article_id, str):
-                articles_id.append(int(_article_id))
-            elif isinstance(_article_id, list):
-                # e.g. '<article data-element-id="123 456">...</article>'
-                articles_id.append(int(_article_id[0]))
-                logger.warning(f"strange data-element-id: {_article_id}")
-            else:
-                logger.error(f"unexpected data-element-id: {_article_id}")
-
-        logger.info(f"{articles_id} properties from list page ")
-        return articles_id
-
-    def get_property_details(self, property_id: int) -> dict:
-        return {}
+    def get_properties_from_list_page(self, soup: BeautifulSoup) -> dict[int, Tag]:
+        return self.scraper.extract_properties(soup)
