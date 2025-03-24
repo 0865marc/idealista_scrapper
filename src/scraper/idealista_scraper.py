@@ -17,14 +17,19 @@ class IdealistaScraper:
 
     def extract_properties(self, soup: BeautifulSoup) -> dict[int, Tag]:
         properties_tag = self.list_page_scraper.extract_properties(soup)
+        return properties_tag
 
         properties_details = {}
         for property_id, property_tag in properties_tag.items():
-            properties_details[property_id] = (
-                self.list_page_scraper.extract_property_details(
-                    property_id, property_tag
+            try:
+                properties_details[property_id] = (
+                    self.list_page_scraper.extract_property_details(
+                        property_id, property_tag
+                    )
                 )
-            )
+            except Exception as e:
+                logger.error(f"Error extracting details for property {property_id}")
+                logger.error(property_tag)
         return properties_details
 
 
@@ -68,60 +73,99 @@ class ListPageScraper:
         return properties_soup
 
     def extract_property_details(self, property_id: int, soup: BeautifulSoup) -> dict:
-        details = {}
-        item_info_ct = soup.find("div", class_="item-info-container")
-        if item_info_ct is None:
-            logger.error(f"No item info container found for property {property_id}")
-            return {}
-
-        details["title"] = item_info_ct.find("a", class_="item-link").text.strip()
-
-        price_row_elements = item_info_ct.find(
-            "div", class_="price-row"
-        ).find_all("span", recursive=False)
-        for _element in price_row_elements:
-            if _element.get("class") is None:
-                logger.warning(f"No class found for element {_element}")
-            elif _element.get("class") == ["item-price", "h2-simulated"]:
-                price_elements = _element.contents
-                for _price_element in price_elements:
-                    if isinstance(_price_element, str):
-                        details["price"] = int(_price_element.replace(".", ""))
-                        continue
-                    if _price_element.get("class") is None:
-                        logger.warning(f"No class found for price element {_price_element}")
-                    elif _price_element.get("class") == ["txt-big"]:
-                        currency = _price_element.text.strip()
-                        if currency == "€":
-                            details["currency"] = _price_element.text.strip()
-                        else:
-                            logger.warning(f"Unknown currency {currency}")
-
-            elif _element.get("class") == ["item-parking"]:
-                for _parking_element in _element.contents:
-                    if isinstance(_parking_element, str):
-                        if "GARAJE" in _parking_element.upper():
-                            continue
-
-                        price, currency = _parking_element.split(" ")
-                        if price.replace(".", "").isdigit():
-                            if currency == "€":
-                                pass
-                            else:
-                                logger.warning(f"Unknown currency {currency}")
-                            continue
-
-                        logger.warning(f"Unknown parking element {_parking_element}")
-
-            else:
-                logger.error(f"Unknown price row element {_element}")
+        return self.HTMLParser(property_id, soup).parse()
 
 
-        _description = item_info_ct.find("div", class_="description").text.strip()
-        details["description"] = " ".join(_description.split())
+    class HTMLParser:
+        def __init__(self, property_id: int, soup: BeautifulSoup) -> None:
+            self.property_id = property_id
+            self.soup = soup
 
-        return details
+        def parse(self) -> dict:
+            try:
+                return {
+                    "title": self.parse_title(),
+                    "price": self.parse_price(),
+                    "parking": self.parse_parking()[0],
+                    "parking_price": self.parse_parking()[1],
+                    "description": self.parse_description(),
+                }
+            except ValueError as e:
+                logger.error(f"Error {e} in {self.property_id}: {self.soup}")
+                return {}
 
+        def parse_title(self) -> str:
+            item_info_ct = self.soup.find("div", class_="item-info-container")
+            if item_info_ct is None:
+                raise ValueError(
+                    f"No item info container found for property {self.property_id}")
+            self.item_info_ct = item_info_ct
+
+            title_element = item_info_ct.find("a", class_="item-link")
+            if title_element is None:
+                raise ValueError(
+                    f"No title element found for property {self.property_id}")
+            return title_element.text.strip()
+
+        def parse_price(self) -> int:
+            price_row_div = self.item_info_ct.find(
+                "div", class_="price-row")
+            if price_row_div is None:
+                raise ValueError(
+                    f"No price row div found for property {self.property_id}")
+            self.price_row_div = price_row_div
+
+            item_price_span = price_row_div.find("span", class_="item-price")
+            if item_price_span is None:
+                raise ValueError(
+                    f"No item price span found for property {self.property_id}")
+
+            for _content in item_price_span.contents:
+                if isinstance(_content, str):
+                    if _content.replace(".", "").isdigit():
+                        price = int(_content.replace(".", ""))
+                elif _content.get("class") is None:
+                    logger.warning(f"No class found for element {_content}")
+                elif _content.get("class") == ["txt-big"]:
+                    currency = _content.text.strip()
+                    if currency == "€":
+                        pass
+                    else:
+                        raise logger.warning(f"Unknown currency {currency}")
+                else:
+                    logger.warning(f"Unknown price element {_content}")
+            return price
+
+        def parse_parking(self) -> tuple[bool, int]:
+            parking: bool = False
+            parking_price: int = 0
+
+            parking_element = self.item_info_ct.find("span", class_="item-parking")
+            if parking_element is None:
+                return parking, parking_price
+
+            for _content in parking_element.contents:
+                if isinstance(_content, str):
+                    if "GARAJE" in _content.upper():
+                        parking = True
+            return parking, parking_price
+
+        def parse_description(self) -> str:
+            description: str = ""
+            item_description_ct = self.item_info_ct.find("div", class_="description")
+            if item_description_ct is None:
+                return description
+
+            for _content in item_description_ct.contents:
+                if isinstance(_content, str):
+                    logger.warning(f"Unexpected str in description {_content}")
+                elif _content.get("class") is None:
+                    logger.warning(f"No class found for element {_content}")
+                elif _content.get("class") == ["ellipsis"]:
+                    description = _content.text.strip()
+                else:
+                    logger.warning(f"Unknown description element {_content}")
+            return " ".join(description.split())
 
 class DetailPageScraper:
     """
