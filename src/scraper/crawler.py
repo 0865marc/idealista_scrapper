@@ -45,7 +45,7 @@ class Crawler:
         try:
             res: requests.Response = requests.post(
                 "https://api.zyte.com/v1/extract",
-                auth=("7cdea51c9eaa4846afdb1641070b23e4", ""),  ## GET it from env
+                auth=("", ""),  ## GET it from env
                 json={"url": url, "httpResponseBody": True},
             )
             match res.status_code:
