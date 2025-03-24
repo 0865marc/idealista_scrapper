@@ -3,7 +3,7 @@ from typing import cast
 
 from bs4 import BeautifulSoup, Tag
 
-logger = logging.getLogger("src.tasks.tasks")
+logger = logging.getLogger("src.tasks.tasks.idealista_scraper")
 
 
 class IdealistaScraper:
@@ -15,22 +15,16 @@ class IdealistaScraper:
         self.list_page_scraper: ListPageScraper = ListPageScraper()
         self.detail_page_scraper: DetailPageScraper = DetailPageScraper()
 
-    def extract_properties(self, soup: BeautifulSoup) -> dict[int, Tag]:
+    def extract_properties_from_list_page(self, soup: BeautifulSoup) -> dict[int, Tag]:
         properties_tag = self.list_page_scraper.extract_properties(soup)
         return properties_tag
 
-        properties_details = {}
-        for property_id, property_tag in properties_tag.items():
-            try:
-                properties_details[property_id] = (
-                    self.list_page_scraper.extract_property_details(
-                        property_id, property_tag
-                    )
-                )
-            except Exception as e:
-                logger.error(f"Error extracting details for property {property_id}")
-                logger.error(property_tag)
-        return properties_details
+    def extract_property_details_from_list_page(
+        self, property_id: int, properties_tag: dict[int, Tag]
+    ) -> dict:
+        return self.list_page_scraper.extract_property_details(
+            property_id, properties_tag[property_id]
+        )
 
 
 class ListPageScraper:
@@ -69,12 +63,10 @@ class ListPageScraper:
             else:
                 logger.error(f"unexpected data-element-id: {_property_id}")
 
-        logger.info(f"{properties_soup.keys()} properties from list page ")
         return properties_soup
 
     def extract_property_details(self, property_id: int, soup: BeautifulSoup) -> dict:
         return self.HTMLParser(property_id, soup).parse()
-
 
     class HTMLParser:
         def __init__(self, property_id: int, soup: BeautifulSoup) -> None:
@@ -98,27 +90,30 @@ class ListPageScraper:
             item_info_ct = self.soup.find("div", class_="item-info-container")
             if item_info_ct is None:
                 raise ValueError(
-                    f"No item info container found for property {self.property_id}")
+                    f"No item info container found for property {self.property_id}"
+                )
             self.item_info_ct = item_info_ct
 
             title_element = item_info_ct.find("a", class_="item-link")
             if title_element is None:
                 raise ValueError(
-                    f"No title element found for property {self.property_id}")
+                    f"No title element found for property {self.property_id}"
+                )
             return title_element.text.strip()
 
         def parse_price(self) -> int:
-            price_row_div = self.item_info_ct.find(
-                "div", class_="price-row")
+            price_row_div = self.item_info_ct.find("div", class_="price-row")
             if price_row_div is None:
                 raise ValueError(
-                    f"No price row div found for property {self.property_id}")
+                    f"No price row div found for property {self.property_id}"
+                )
             self.price_row_div = price_row_div
 
             item_price_span = price_row_div.find("span", class_="item-price")
             if item_price_span is None:
                 raise ValueError(
-                    f"No item price span found for property {self.property_id}")
+                    f"No item price span found for property {self.property_id}"
+                )
 
             for _content in item_price_span.contents:
                 if isinstance(_content, str):
@@ -158,6 +153,8 @@ class ListPageScraper:
 
             for _content in item_description_ct.contents:
                 if isinstance(_content, str):
+                    if _content.strip() == "":
+                        continue
                     logger.warning(f"Unexpected str in description {_content}")
                 elif _content.get("class") is None:
                     logger.warning(f"No class found for element {_content}")
@@ -166,6 +163,7 @@ class ListPageScraper:
                 else:
                     logger.warning(f"Unknown description element {_content}")
             return " ".join(description.split())
+
 
 class DetailPageScraper:
     """

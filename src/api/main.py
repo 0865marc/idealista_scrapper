@@ -9,7 +9,6 @@ from fastapi.responses import JSONResponse
 from src.api.routers.router import router
 from src.db.base import create_db_and_tables
 
-
 logger = logging.getLogger(__name__)
 handler = logging.handlers.TimedRotatingFileHandler(
     "logs/api.log",
@@ -32,10 +31,12 @@ app = FastAPI(
 )
 app.include_router(router)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
     yield
+
 
 # Middleware to log requests and responses
 @app.middleware("http")
