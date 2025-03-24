@@ -35,11 +35,12 @@ def test_extract_property_details_from_list_page(
     extracted_articles_from_list_page: dict[int, Tag],
 ) -> None:
     # Property 107654102
+
     details = idealista_crawler.scraper.list_page_scraper.extract_property_details(
         107654102, extracted_articles_from_list_page[107654102]
     )
     assert details["title"] == "Casa o chalet independiente en Ciutat Jardí, Lleida"
-    assert details["price"] == "525.000€"
+    assert details["price"] == 525000
     assert details["description"] == "En breve presentamos chalet unifamiliar de 220m2 con parcela de 820m2, en las cercanías del CLUB DE TENNIS LLEIDA. Ideal para familias, que valoren tranquilidad, cerca del colegio Espiga y del Club. Llamanos para inscribirte en la lista para visitar dicho inmueble."
 
     # Property 107651666
@@ -47,7 +48,8 @@ def test_extract_property_details_from_list_page(
         107651666, extracted_articles_from_list_page[107651666]
     )
     assert details["title"] == "Piso en Albert Porqueras, Mariola, Lleida"
-    assert details["price"] == "140.000€"
-    assert details["parking_included"] is True
+    assert details["price"] == 140000
+    assert details["parking"] is True
+    assert details["parking_price"] == 0
     assert details["description"] == "¿Te imaginas tu vivienda en propiedad en Lérida? ¡Testa Homes lo hace posible! *La vivienda y fotos publicadas corresponden a una vivienda tipo, para más información consulte a su gestor comercial. Vivienda sin amueblar. Suelos de tarima y armarios empotrados. Cocina amueblada con encimera, horno, fregadero y campan"
 
