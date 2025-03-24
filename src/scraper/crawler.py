@@ -3,12 +3,12 @@ import os
 import time
 import uuid
 from base64 import b64decode
-from typing import Literal, cast
+from typing import Literal
 
 import redis
 import redis.client
 import requests
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 
 from src.scraper.idealista_scraper import IdealistaScraper
 
@@ -20,6 +20,7 @@ class Crawler:
     Handles the basics mecahnics of crawling a website.
     Right now it's only used for Idealista, but could be extended to other websites.
     """
+
     def __init__(self, webpage: Literal["idealista", "fotocasa"]) -> None:
         self.webpage = webpage
         self.REDIS_HOST: str = os.getenv("REDIS_HOST", "redis")
@@ -33,7 +34,7 @@ class Crawler:
         self.redis_client = redis.Redis(host=self.REDIS_HOST, port=self.REDIS_PORT)
         self.worker_id = str(uuid.uuid4())
 
-    def request_through_zyte(self, url: str) -> BeautifulSoup|None:
+    def request_through_zyte(self, url: str) -> BeautifulSoup | None:
         logger.info(f"Worker {self.worker_id} requesting {url} through Zyte")
         has_slot = False
 
@@ -42,14 +43,14 @@ class Crawler:
                 has_slot = self.acquire_slot(pipe)
 
         try:
-            response: requests.Response = requests.post(
+            res: requests.Response = requests.post(
                 "https://api.zyte.com/v1/extract",
                 auth=("7cdea51c9eaa4846afdb1641070b23e4", ""),  ## GET it from env
                 json={"url": url, "httpResponseBody": True},
             )
-            match response.status_code:
+            match res.status_code:
                 case 200:
-                    response_body = b64decode(response.json()["httpResponseBody"])
+                    response_body = b64decode(res.json()["httpResponseBody"])
                     soup = BeautifulSoup(response_body, "html.parser")
                     return soup
                 case 401:
@@ -57,7 +58,7 @@ class Crawler:
                     return None
                 case _:
                     logger.error(
-                        f"Zyte response code: {response.status_code} | {response.json()}"
+                        f"Zyte response code: {res.status_code} | {res.json()}"
                     )
                     return None
 
@@ -84,7 +85,7 @@ class Crawler:
                 pipe.hset(self.ACTIVE_WORKERS_KEY, self.worker_id, str(time.time()))
 
                 pipe.execute()
-                logger.info(f"Slot acquired ({current_count + 1}/{self.MAX_WORKERS})")  # noqa: E501
+                logger.info(f"Slot acquired ({current_count + 1}/{self.MAX_WORKERS})")
                 return True
             else:
                 # No available slot, wait and retry
@@ -110,14 +111,14 @@ class IdealistaCrawler(Crawler):
         super().__init__("idealista")
         self.scraper: IdealistaScraper = IdealistaScraper()
 
-    def crawl_properties(self, soup: BeautifulSoup) -> dict[int, dict]:
-        properties_id = self.get_properties_from_list_page(soup)
+    def crawl_properties_from_list_page(self, soup: BeautifulSoup) -> dict[int, dict]:
+        properties_soup = self.scraper.extract_properties_from_list_page(soup)
 
         properties_details: dict[int, dict] = {}
-        for property_id, property_soup in properties_id.items():
-            property_details = self.get_property_details(property_id, property_soup)
-            properties_details[property_id] = property_details
+        for property_id in properties_soup.keys():
+            properties_details[property_id] = (
+                self.scraper.extract_property_details_from_list_page(
+                    property_id, properties_soup
+                )
+            )
         return properties_details
-
-    def get_properties_from_list_page(self, soup: BeautifulSoup) -> dict[int, Tag]:
-        return self.scraper.extract_properties(soup)
