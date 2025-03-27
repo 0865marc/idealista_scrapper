@@ -1,5 +1,5 @@
 import logging
-from typing import Any, cast
+from typing import cast
 
 from bs4 import BeautifulSoup, Tag
 
@@ -68,7 +68,10 @@ class ListPageScraper:
         return properties_soup
 
     def extract_property_details(self, property_id: int, soup: Tag) -> dict:
-        return self.HTMLParser(property_id, soup).parse()
+        logger.info(f"Extracting details from list page for property [{property_id}]")
+        details = self.HTMLParser(property_id, soup).parse()
+        logger.info(details)
+        return details
 
     class HTMLParser:
         def __init__(self, property_id: int, soup: Tag) -> None:
@@ -83,6 +86,7 @@ class ListPageScraper:
                     "parking": self.parse_parking()[0],
                     "parking_price": self.parse_parking()[1],
                     "description": self.parse_description(),
+                    **self.parse_item_details(),
                 }
             except ValueError as e:
                 logger.error(f"Error {e} in {self.property_id}: {self.soup}")
@@ -121,6 +125,7 @@ class ListPageScraper:
                 if isinstance(_content, str):
                     if _content.replace(".", "").isdigit():
                         price = int(_content.replace(".", ""))
+                        continue
                 if not isinstance(_content, Tag):
                     logger.warning(f"Unexpected content type {_content}")
                     continue
@@ -137,8 +142,8 @@ class ListPageScraper:
                     logger.warning(f"Unknown price element {_content}")
             return price
 
-        def parse_parking(self) -> tuple[bool, int]:
-            parking: bool = False
+        def parse_parking(self) -> tuple[bool|None, int]:
+            parking: bool | None = None
             parking_price: int = 0
 
             parking_element = self.item_info_ct.find("span", class_="item-parking")
@@ -160,8 +165,8 @@ class ListPageScraper:
             for _content in item_description_ct.contents:
                 if isinstance(_content, str):
                     if _content.strip() == "":
-                        pass
-                    logger.warning(f"Unexpected str in description {_content}")
+                        continue
+                    logger.warning(f"Unexpected str in description {repr(_content)}")
                     continue
 
                 if not isinstance(_content, Tag):
@@ -176,37 +181,56 @@ class ListPageScraper:
                     logger.warning(f"Unknown description element {_content}")
             return " ".join(description.split())
 
+
         def parse_item_details(self) -> dict:
             item_detail_char = self.item_info_ct.find("div", class_="item-detail-char")
             if not isinstance(item_detail_char, Tag):
                 return {}
 
-            details: dict[str, Any] = {}
-            floor: int | None = None
-            elevator: bool = False
-            rooms: int | None = None
-            size: int | None = None
-            for _content in item_detail_char.contents:
-                if isinstance(_content, str):
-                    logger.warning(f"Unexpected str in item details {_content}")
-                elif not isinstance(_content, Tag):
-                    logger.warning(f"Unexpected content type {_content}")
-                elif _content.get("class") is None:
-                    logger.warning(f"No class found for element {_content}")
-                elif _content.get("class") == ["item-detail"]:
-                    if "hab" in _content.text.strip().lower():
-                        rooms = _content.text.strip()
-                    elif "m²" in _content.text.strip().lower():
-                        size = _content.text.strip()
-                    elif "planta" in _content.text.strip().lower():
-                        floor = _content.text.strip()
-                        elevator = "ascensor" in _content.text.strip().lower()
-            details = {
-                "floor" : floor,
-                "elevator" : elevator,
-                "rooms" : rooms,
-                "size" : size
+            details = {"floor": None, "elevator": None, "rooms": None, "size": None}
+
+            def extract_number(text: str) -> int | None:
+                import re
+
+                match = re.search(r"\d+", text)
+                return int(match.group()) if match else None
+
+            def extract_floor_and_elevator(text: str) -> dict:
+                floor_and_elevator = {"floor": None, "elevator": None}
+
+                if "planta" in text:
+                    floor_and_elevator["floor"] = extract_number(text)
+                elif "bajo" in text:
+                    floor_and_elevator["floor"] = 0
+
+                if "ascensor" in text:
+                    if "sin" in text:
+                        floor_and_elevator["elevator"] = False
+                    elif "con" in text:
+                        floor_and_elevator["elevator"] = True
+                return floor_and_elevator
+
+            details_processors = {
+                "hab.": lambda text: {"rooms": extract_number(text)},
+                "m²": lambda text: {"size": extract_number(text)},
+                "planta": lambda text: extract_floor_and_elevator(text)
             }
+
+            for element in item_detail_char.find_all("span", class_="item-detail"):
+                if not isinstance(element, Tag):
+                    continue
+
+                text = element.text.strip().lower()
+                found = False
+                for keyword, processor in details_processors.items():
+                    if keyword in text:
+                        found = True
+                        details.update(processor(text))
+                        break
+
+                if not found:
+                    logger.warning(f"Unexpected element in item-detail: {element}")
+
 
             return details
 
