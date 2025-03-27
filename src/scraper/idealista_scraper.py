@@ -164,6 +164,33 @@ class ListPageScraper:
                     logger.warning(f"Unknown description element {_content}")
             return " ".join(description.split())
 
+        def parse_item_details(self) -> dict:
+            item_detail_char = self.item_info_ct.find("div", class_="item-detail-char")
+            if item_detail_char is None:
+                return {}
+
+            details: dict[str, str] = {}
+            floor: int | None = None
+            elevator: bool = False
+            rooms: int | None = None
+            for _content in item_detail_char.contents:
+                if isinstance(_content, str):
+                    logger.warning(f"Unexpected str in item details {_content}")
+                elif _content.get("class") is None:
+                    logger.warning(f"No class found for element {_content}")
+                elif _content.get("class") == ["item-detail"]:
+                    if "hab" in _content.text.strip().lower():
+                        details["rooms"] = _content.text.strip()
+                    elif "m²" in _content.text.strip().lower():
+                        details["size"] = _content.text.strip()
+                    elif "planta" in _content.text.strip().lower():
+                        details["floor"] = _content.text.strip()
+                        details["elevator"] = (
+                            "ascensor" in _content.text.strip().lower()
+                        )
+
+            return details
+
 
 class DetailPageScraper:
     """

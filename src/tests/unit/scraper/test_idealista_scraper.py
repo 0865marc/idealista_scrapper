@@ -8,13 +8,11 @@ from src.scraper.idealista_scraper import IdealistaScraper
 def idealista_scraper() -> IdealistaScraper:
     return IdealistaScraper()
 
-
 @pytest.fixture
 def articles_list_soup_from_file() -> BeautifulSoup:
-    with open("src/tests/unit/data/articles.html", "r") as file:
+    with open("src/tests/unit/scraper/data/list_page.html", "r") as file:
         html_content = file.read()
         return BeautifulSoup(html_content, "html.parser")
-
 
 @pytest.fixture
 def extracted_articles_from_list_page(
@@ -26,20 +24,27 @@ def extracted_articles_from_list_page(
 
 
 def test_extract_properties_from_list_page(
-    extracted_articles_from_list_page: dict[int, Tag],
+    extracted_articles_from_list_page,
 ) -> None:
     assert len(extracted_articles_from_list_page) == 30
     assert 107654102 in extracted_articles_from_list_page
 
 
 def test_extract_property_details_from_list_page(
-    idealista_scraper: IdealistaScraper,
-    extracted_articles_from_list_page: dict[int, Tag],
+    idealista_scraper,
+    extracted_articles_from_list_page,
 ) -> None:
     # Property 107654102
     details = idealista_scraper.extract_property_details_from_list_page(
         107654102, extracted_articles_from_list_page
     )
+    _details = {
+        "title" : "Casa o chalet independiente en Ciutat Jardí, Lleida",
+        "price" : 525000,
+        "rooms" : 5,
+        "size" : 260,
+        "elevator" : False,
+    }
     assert details["title"] == "Casa o chalet independiente en Ciutat Jardí, Lleida"
     assert details["price"] == 525000
     assert (
