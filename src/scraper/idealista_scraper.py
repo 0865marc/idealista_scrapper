@@ -1,5 +1,5 @@
 import logging
-from typing import cast
+from typing import Any, cast
 
 from bs4 import BeautifulSoup, Tag
 
@@ -22,6 +22,8 @@ class IdealistaScraper:
     def extract_property_details_from_list_page(
         self, property_id: int, properties_tag: dict[int, Tag]
     ) -> dict:
+        if property_id not in properties_tag:
+            return {}
         return self.list_page_scraper.extract_property_details(
             property_id, properties_tag[property_id]
         )
@@ -39,12 +41,12 @@ class ListPageScraper:
         div_main = cast(Tag | None, soup.find("div", id="main"))
         if div_main is None:
             logger.error("No div main found")
-            return []
+            return {}
 
         section_main = cast(Tag | None, div_main.find("main"))
         if section_main is None:
             logger.error("No section main found")
-            return []
+            return {}
 
         properties = section_main.find_all("article", attrs={"data-element-id": True})
         properties = cast(list[Tag], properties)
@@ -65,11 +67,11 @@ class ListPageScraper:
 
         return properties_soup
 
-    def extract_property_details(self, property_id: int, soup: BeautifulSoup) -> dict:
+    def extract_property_details(self, property_id: int, soup: Tag) -> dict:
         return self.HTMLParser(property_id, soup).parse()
 
     class HTMLParser:
-        def __init__(self, property_id: int, soup: BeautifulSoup) -> None:
+        def __init__(self, property_id: int, soup: Tag) -> None:
             self.property_id = property_id
             self.soup = soup
 
@@ -88,7 +90,7 @@ class ListPageScraper:
 
         def parse_title(self) -> str:
             item_info_ct = self.soup.find("div", class_="item-info-container")
-            if item_info_ct is None:
+            if not isinstance(item_info_ct, Tag):
                 raise ValueError(
                     f"No item info container found for property {self.property_id}"
                 )
@@ -103,14 +105,14 @@ class ListPageScraper:
 
         def parse_price(self) -> int:
             price_row_div = self.item_info_ct.find("div", class_="price-row")
-            if price_row_div is None:
+            if not isinstance(price_row_div, Tag):
                 raise ValueError(
                     f"No price row div found for property {self.property_id}"
                 )
             self.price_row_div = price_row_div
 
             item_price_span = price_row_div.find("span", class_="item-price")
-            if item_price_span is None:
+            if not isinstance(item_price_span, Tag):
                 raise ValueError(
                     f"No item price span found for property {self.property_id}"
                 )
@@ -119,14 +121,18 @@ class ListPageScraper:
                 if isinstance(_content, str):
                     if _content.replace(".", "").isdigit():
                         price = int(_content.replace(".", ""))
-                elif _content.get("class") is None:
+                if not isinstance(_content, Tag):
+                    logger.warning(f"Unexpected content type {_content}")
+                    continue
+
+                if _content.get("class") is None:
                     logger.warning(f"No class found for element {_content}")
                 elif _content.get("class") == ["txt-big"]:
                     currency = _content.text.strip()
                     if currency == "€":
                         pass
                     else:
-                        raise logger.warning(f"Unknown currency {currency}")
+                        raise ValueError(f"Unknown currency {currency}")
                 else:
                     logger.warning(f"Unknown price element {_content}")
             return price
@@ -136,7 +142,7 @@ class ListPageScraper:
             parking_price: int = 0
 
             parking_element = self.item_info_ct.find("span", class_="item-parking")
-            if parking_element is None:
+            if not isinstance(parking_element, Tag):
                 return parking, parking_price
 
             for _content in parking_element.contents:
@@ -148,15 +154,21 @@ class ListPageScraper:
         def parse_description(self) -> str:
             description: str = ""
             item_description_ct = self.item_info_ct.find("div", class_="description")
-            if item_description_ct is None:
+            if not isinstance(item_description_ct, Tag):
                 return description
 
             for _content in item_description_ct.contents:
                 if isinstance(_content, str):
                     if _content.strip() == "":
-                        continue
+                        pass
                     logger.warning(f"Unexpected str in description {_content}")
-                elif _content.get("class") is None:
+                    continue
+
+                if not isinstance(_content, Tag):
+                    logger.warning("description_ct is not Tag type")
+                    continue
+
+                if _content.get("class") is None:
                     logger.warning(f"No class found for element {_content}")
                 elif _content.get("class") == ["ellipsis"]:
                     description = _content.text.strip()
@@ -166,28 +178,35 @@ class ListPageScraper:
 
         def parse_item_details(self) -> dict:
             item_detail_char = self.item_info_ct.find("div", class_="item-detail-char")
-            if item_detail_char is None:
+            if not isinstance(item_detail_char, Tag):
                 return {}
 
-            details: dict[str, str] = {}
+            details: dict[str, Any] = {}
             floor: int | None = None
             elevator: bool = False
             rooms: int | None = None
+            size: int | None = None
             for _content in item_detail_char.contents:
                 if isinstance(_content, str):
                     logger.warning(f"Unexpected str in item details {_content}")
+                elif not isinstance(_content, Tag):
+                    logger.warning(f"Unexpected content type {_content}")
                 elif _content.get("class") is None:
                     logger.warning(f"No class found for element {_content}")
                 elif _content.get("class") == ["item-detail"]:
                     if "hab" in _content.text.strip().lower():
-                        details["rooms"] = _content.text.strip()
+                        rooms = _content.text.strip()
                     elif "m²" in _content.text.strip().lower():
-                        details["size"] = _content.text.strip()
+                        size = _content.text.strip()
                     elif "planta" in _content.text.strip().lower():
-                        details["floor"] = _content.text.strip()
-                        details["elevator"] = (
-                            "ascensor" in _content.text.strip().lower()
-                        )
+                        floor = _content.text.strip()
+                        elevator = "ascensor" in _content.text.strip().lower()
+            details = {
+                "floor" : floor,
+                "elevator" : elevator,
+                "rooms" : rooms,
+                "size" : size
+            }
 
             return details
 
