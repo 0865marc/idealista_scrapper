@@ -10,6 +10,7 @@ handler = logging.handlers.TimedRotatingFileHandler(
     "logs/tasks.log",
     when="midnight",
     interval=1,
+    backupCount=3
 )
 handler.setFormatter(
     logging.Formatter(

@@ -142,7 +142,7 @@ class ListPageScraper:
                     logger.warning(f"Unknown price element {_content}")
             return price
 
-        def parse_parking(self) -> tuple[bool|None, int]:
+        def parse_parking(self) -> tuple[bool | None, int]:
             parking: bool | None = None
             parking_price: int = 0
 
@@ -181,13 +181,18 @@ class ListPageScraper:
                     logger.warning(f"Unknown description element {_content}")
             return " ".join(description.split())
 
-
         def parse_item_details(self) -> dict:
             item_detail_char = self.item_info_ct.find("div", class_="item-detail-char")
             if not isinstance(item_detail_char, Tag):
                 return {}
 
-            details = {"floor": None, "elevator": None, "rooms": None, "size": None}
+            details = {
+                "floor": None,
+                "elevator": None,
+                "rooms": None,
+                "size": None,
+                "exterior": None,
+            }
 
             def extract_number(text: str) -> int | None:
                 import re
@@ -196,12 +201,14 @@ class ListPageScraper:
                 return int(match.group()) if match else None
 
             def extract_floor_and_elevator(text: str) -> dict:
-                floor_and_elevator = {"floor": None, "elevator": None}
+                floor_and_elevator = {"floor": None, "elevator": None, "exterior": None}
 
                 if "planta" in text:
                     floor_and_elevator["floor"] = extract_number(text)
                 elif "bajo" in text:
                     floor_and_elevator["floor"] = 0
+                elif "exterior" in text:
+                    floor_and_elevator["exterior"] = True
 
                 if "ascensor" in text:
                     if "sin" in text:
@@ -213,7 +220,9 @@ class ListPageScraper:
             details_processors = {
                 "hab.": lambda text: {"rooms": extract_number(text)},
                 "m²": lambda text: {"size": extract_number(text)},
-                "planta": lambda text: extract_floor_and_elevator(text)
+                "planta": lambda text: extract_floor_and_elevator(text),
+                "exterior": lambda text: extract_floor_and_elevator(text),
+                "bajo": lambda text: extract_floor_and_elevator(text),
             }
 
             for element in item_detail_char.find_all("span", class_="item-detail"):
@@ -229,8 +238,13 @@ class ListPageScraper:
                         break
 
                 if not found:
+                    if text == "sin ascensor":
+                        details.update({"elevator":False})
+                        continue
+                    elif text == "con ascensor":
+                        details.update({"elevator":True})
+                        continue
                     logger.warning(f"Unexpected element in item-detail: {element}")
-
 
             return details
 

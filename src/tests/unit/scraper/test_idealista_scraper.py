@@ -50,6 +50,7 @@ def test_extract_property_details_from_list_page(
         "parking": None,
         "parking_price": 0,
         "floor": None,
+        "exterior": None
     }
 
     assert details == expected_details
@@ -68,5 +69,6 @@ def test_extract_property_details_from_list_page(
         "elevator": True,
         "parking": True,
         "parking_price": 0,
+        "exterior": None
     }
     assert details == expected_details

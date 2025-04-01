@@ -15,9 +15,10 @@ class ProperyListData(SQLModel, table=True):
     price: float
     size: float
 
-    description: Optional[str] = None
-    rooms: Optional[int] = None
-    floor: Optional[str] = None
+    description: Optional[str]
+    rooms: Optional[int]
+    floor: Optional[str]
+    exterior: Optional[bool]
     elevator: Optional[bool]
     parking: Optional[bool]
     parking_price: Optional[int]
